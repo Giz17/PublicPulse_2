@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminFeedbackPage extends StatelessWidget {
-  const AdminFeedbackPage({super.key});
+  final String adminDepartment; // Add a parameter for the admin's department
+
+  const AdminFeedbackPage({super.key, required this.adminDepartment});
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +13,11 @@ class AdminFeedbackPage extends StatelessWidget {
         title: const Text('Admin Feedback Page'),
       ),
       body: StreamBuilder(
-        stream: FirebaseFirestore.instance.collection('complaints').snapshots(),
+        // Filter complaints by the admin's department
+        stream: FirebaseFirestore.instance
+            .collection('complaints')
+            .where('dept_name', isEqualTo: adminDepartment) // Filter by department
+            .snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());

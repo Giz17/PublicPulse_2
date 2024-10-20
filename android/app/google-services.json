@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "431418133912",
+    "project_id": "publicpulse2-fa778",
+    "storage_bucket": "publicpulse2-fa778.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:431418133912:android:cbf60b17ed11f2bd8bafed",
+        "android_client_info": {
+          "package_name": "com.example.publicpulse_2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSiKH7xDH_htH9ktRzgz759QxP4gdDWew"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

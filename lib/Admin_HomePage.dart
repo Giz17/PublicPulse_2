@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import './AdminCommunityChat_GOAT.dart';
@@ -7,7 +8,10 @@ import './Admin_Progress.dart';
 import './Admin_AccountSettings.dart';
 
 class AdminHomePage extends StatefulWidget {
-  const AdminHomePage({super.key});
+  const AdminHomePage({super.key, required this.adminEmail, required this.adminDepartment});
+
+  final String adminEmail;
+  final String adminDepartment;
 
   @override
   _AdminHomePageState createState() => _AdminHomePageState();
@@ -18,6 +22,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
   int resolvedComplaints = 0;
   String adminID = '';   // Placeholder for admin ID
   String adminEmail = ''; // Placeholder for admin email
+  String adminDepartment = '';
 
   @override
   void initState() {
@@ -39,16 +44,32 @@ class _AdminHomePageState extends State<AdminHomePage> {
     });
   }
 
-  // Fetch admin details from Firestore (admin_id and email)
+  // Fetch admin details from Firestore (admin_id, email, and department)
   Future<void> fetchAdminDetails() async {
-    // Assuming there is a collection called 'admin' and fetching a specific admin document
-    DocumentSnapshot adminSnapshot = await FirebaseFirestore.instance.collection('admin').doc('admin_id').get();
 
-    setState(() {
-      adminID = adminSnapshot['admin_id'];    // Ensure field names match your Firestore structure
-      adminEmail = adminSnapshot['email'];
-    });
-  }
+    QuerySnapshot adminSnapshot = await FirebaseFirestore.instance
+        .collection('admin')
+        .where('email', isEqualTo: widget.adminEmail) // Use the passed email
+        .limit(1)
+        .get();
+
+    if (adminSnapshot.docs.isNotEmpty) {
+      var adminData = adminSnapshot.docs.first.data() as Map<String, dynamic>;
+
+      setState(() {
+          adminID = adminData['admin_id'] ?? 'Unknown Admin ID'; // Added fallback value
+          adminEmail = adminData['email'] ?? 'Unknown Email';
+          adminDepartment = adminData['dept_name'] ?? 'Unknown Department';  // Fetch the department
+        });
+
+        print('Admin ID: $adminID, Admin Department: $adminDepartment');  // Debugging print
+
+      } else {
+        print('Admin not found in Firestore.');
+      }
+    }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +113,11 @@ class _AdminHomePageState extends State<AdminHomePage> {
                     ),
                     const SizedBox(height: 8.0),
                     Text(
-                      'Admin Email: $adminEmail',
+                      'Admin Email: ${widget.adminEmail}',
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    Text(
+                      'Admin Department: $adminDepartment',
                       style: const TextStyle(fontSize: 18),
                     ),
                   ],
@@ -140,7 +165,13 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildBottomButton('Feedback', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminFeedbackPage()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AdminFeedbackPage(adminDepartment: adminDepartment),
+                        ),
+                      );
+
                     }),
                     _buildBottomButton('Dashboard', () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminDashboard()));
@@ -152,7 +183,13 @@ class _AdminHomePageState extends State<AdminHomePage> {
                       },
                     ),
                     _buildBottomButton('Progress', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminProgressPage()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AdminProgressPage(adminDepartment: adminDepartment),
+                        ),
+                      );
+
                     }),
                     _buildBottomButton('Account', () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminSettingsPage()));

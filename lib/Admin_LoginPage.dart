@@ -33,10 +33,18 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
         final adminData = result.docs[0].data() as Map<String, dynamic>;
 
         if (adminData['password'] == password) {
-          // Password is correct, navigate to AdminHomePage
+          // Password is correct, ensure one admin per department
+          String adminDepartment = adminData['dept_name'];
+
+          // Navigate to AdminHomePage, passing email and department
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const AdminHomePage()),
+            MaterialPageRoute(
+              builder: (context) => AdminHomePage(
+                adminEmail: adminData['email'], // Pass admin email
+                adminDepartment: adminDepartment, // Pass department to the home page
+              ),
+            ),
           );
         } else {
           setState(() {
@@ -49,8 +57,8 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
           errorMessage = 'Admin with this email does not exist.';
         });
       }
-    }
 
+  }
 
   @override
   Widget build(BuildContext context) {

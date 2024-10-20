@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminProgressPage extends StatefulWidget {
-  const AdminProgressPage({super.key});
+  final String adminDepartment; // Add a parameter for the admin's department
+
+  const AdminProgressPage({super.key, required this.adminDepartment});
 
   @override
   _AdminProgressPageState createState() => _AdminProgressPageState();
@@ -16,7 +18,11 @@ class _AdminProgressPageState extends State<AdminProgressPage> {
         title: const Text('Admin Progress Page'),
       ),
       body: StreamBuilder(
-        stream: FirebaseFirestore.instance.collection('complaints').snapshots(),
+        // Filter complaints by the admin's department
+        stream: FirebaseFirestore.instance
+            .collection('complaints')
+            .where('dept_name', isEqualTo: widget.adminDepartment) // Filter by department
+            .snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
