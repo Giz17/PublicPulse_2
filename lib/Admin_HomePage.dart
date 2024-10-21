@@ -33,11 +33,17 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
   // Fetch complaint data from Firestore
   Future<void> fetchComplaintData() async {
-    final QuerySnapshot complaintsSnapshot = await FirebaseFirestore.instance.collection('complaints').get();
+    // Fetch complaints only for the department specified
+    final QuerySnapshot complaintsSnapshot = await FirebaseFirestore.instance
+        .collection('complaints')
+        .where('dept_name', isEqualTo: widget.adminDepartment) // Filter by department
+        .get();
 
+    // Calculate total and resolved complaints
     int totalCount = complaintsSnapshot.docs.length;
     int resolvedCount = complaintsSnapshot.docs.where((doc) => doc['status'] == 'Resolved').length;
 
+    // Update the UI with the fetched data
     setState(() {
       totalComplaints = totalCount;
       resolvedComplaints = resolvedCount;

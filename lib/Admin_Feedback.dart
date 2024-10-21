@@ -19,10 +19,24 @@ class AdminFeedbackPage extends StatelessWidget {
             .where('dept_name', isEqualTo: adminDepartment) // Filter by department
             .snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.hasError) {
+            // Display error if something goes wrong with the query
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            // Show loading spinner while fetching data
             return const Center(child: CircularProgressIndicator());
           }
 
+          // If the snapshot has no data, show a message
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text('No complaints found for this department.'));
+          }
+
+          // Show list of complaints if data exists
           return ListView.builder(
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
@@ -48,11 +62,11 @@ class AdminFeedbackPage extends StatelessWidget {
                           .collection('feedback')
                           .snapshots(),
                       builder: (context, AsyncSnapshot<QuerySnapshot> feedbackSnapshot) {
-                        if (!feedbackSnapshot.hasData) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (feedbackSnapshot.hasError) {
+                          return Text('Error: ${feedbackSnapshot.error}');
                         }
 
-                        if (feedbackSnapshot.data!.docs.isEmpty) {
+                        if (!feedbackSnapshot.hasData || feedbackSnapshot.data!.docs.isEmpty) {
                           return const Padding(
                             padding: EdgeInsets.all(8.0),
                             child: Text('No feedback available for this complaint.'),
@@ -122,6 +136,7 @@ class AdminFeedbackPage extends StatelessWidget {
     );
   }
 }
+
 
 
 

@@ -21,6 +21,7 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
   final TextEditingController _detailsController = TextEditingController();
   final TextEditingController _pincodeController = TextEditingController();
   final TextEditingController _statusController = TextEditingController();
+  final TextEditingController _priorityController = TextEditingController();
   bool notifyMe = false;
   String? fileUrl;
 
@@ -46,6 +47,7 @@ class _AddComplaintPageState extends State<AddComplaintPage> {
           pincode: _pincodeController.text,
           status: _statusController.text,
           email: email,
+          priority: _priorityController.text,
 
         );
 

@@ -10,7 +10,6 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   String searchQuery = '';
-  String selectedDepartment = 'All';
   String sortBy = 'Date';
 
   @override
@@ -26,7 +25,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             padding: const EdgeInsets.all(8.0),
             child: TextField(
               decoration: const InputDecoration(
-                hintText: 'Search complaints...',
+                hintText: 'Search complaints by title...',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.search),
               ),
@@ -43,26 +42,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Filter by Department Dropdown
-                DropdownButton<String>(
-                  value: selectedDepartment,
-                  items: <String>['All', 'HR', 'IT', 'Finance', 'Admin']
-                      .map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedDepartment = newValue!;
-                    });
-                  },
-                ),
-                // Sort by Dropdown
                 DropdownButton<String>(
                   value: sortBy,
-                  items: <String>['Date', 'email']
+                  items: <String>['Date', 'Priority']
                       .map((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
@@ -78,7 +60,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ],
             ),
           ),
-          // Department-wise Complaint Listing
+          // Complaint Listing
           Expanded(
             child: StreamBuilder(
               stream: FirebaseFirestore.instance.collection('complaints').snapshots(),
@@ -90,79 +72,57 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 // Filter and sort complaints based on user input
                 List<QueryDocumentSnapshot> complaints = snapshot.data!.docs;
 
-                // Apply Department Filter
-                if (selectedDepartment != 'All') {
-                  complaints = complaints
-                      .where((doc) => doc['dept_name'] == selectedDepartment)
-                      .toList();
-                }
-
-                // Apply Search Filter
+                // Apply Search Filter (Search by complaint title)
                 if (searchQuery.isNotEmpty) {
                   complaints = complaints
                       .where((doc) =>
-                  doc['email'].toLowerCase().contains(searchQuery) ||
-                      doc['details'].toLowerCase().contains(searchQuery))
+                      doc['complaint_title']
+                          .toLowerCase()
+                          .contains(searchQuery))
                       .toList();
                 }
 
-                // Apply Sorting
+                // Apply Sorting (Sort by Date or Priority)
                 complaints.sort((a, b) {
                   if (sortBy == 'Date') {
                     return a['date'].compareTo(b['date']);
                   } else {
-                    return a['email'].compareTo(b['email']);
+                    return a['priority']?.compareTo(b['priority']) ?? 0;
                   }
                 });
 
-                // Group complaints by department
-                Map<String, List<QueryDocumentSnapshot>> deptComplaints = {};
-                for (var complaint in complaints) {
-                  String dept = complaint['dept_name'];
-                  if (!deptComplaints.containsKey(dept)) {
-                    deptComplaints[dept] = [];
-                  }
-                  deptComplaints[dept]!.add(complaint);
-                }
-
-                // Display complaints grouped by department
-                return ListView(
-                  children: deptComplaints.keys.map((department) {
-                    return ExpansionTile(
-                      title: Text(department),
-                      children: deptComplaints[department]!.map((complaint) {
-                        return ListTile(
-                          title: Text('Complaint ID: ${complaint['complaint_id']}'),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Date: ${complaint['date']}'),
-                              Text('User: ${complaint['email']}'),
-                              Text('Comments: ${complaint['details']}'),
-                              Text('Status: ${complaint['status']}'),
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () {
-                                  deleteComplaint(complaint.id);
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.reply, color: Colors.blue),
-                                onPressed: () {
-                                  respondToComplaint(context, complaint.id);
-                                },
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                // Display complaints in a ListView
+                return ListView.builder(
+                  itemCount: complaints.length,
+                  itemBuilder: (context, index) {
+                    var complaint = complaints[index];
+                    return ListTile(
+                      title: Text('Complaint Title: ${complaint['complaint_title']}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Date: ${complaint['date']}'),
+                          Text('User: ${complaint['email']}'),
+                          Text('Comments: ${complaint['details']}'),
+                          Text('Status: ${complaint['status']}'),
+                          Text('Priority: ${complaint['priority'] ?? "None"}'),
+                        ],
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (newPriority) {
+                          updateComplaintPriority(complaint.id, newPriority);
+                        },
+                        itemBuilder: (BuildContext context) {
+                          return ['High', 'Medium', 'Low'].map((String choice) {
+                            return PopupMenuItem<String>(
+                              value: choice,
+                              child: Text('Set Priority: $choice'),
+                            );
+                          }).toList();
+                        },
+                      ),
                     );
-                  }).toList(),
+                  },
                 );
               },
             ),
@@ -170,6 +130,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ],
       ),
     );
+  }
+
+  // Update the priority of the complaint in Firestore
+  void updateComplaintPriority(String complaintId, String newPriority) {
+    FirebaseFirestore.instance
+        .collection('complaints')
+        .doc(complaintId)
+        .update({'priority': newPriority}).then((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Complaint priority updated to $newPriority')),
+      );
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update priority: $error')),
+      );
+    });
   }
 
   void deleteComplaint(String complaintId) {

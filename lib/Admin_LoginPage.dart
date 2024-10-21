@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
 import './Admin_HomePage.dart';
 
 class AdminLoginPage extends StatefulWidget {
@@ -14,50 +15,61 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   String errorMessage = ''; // To display error messages
 
-  // Function to validate login
+  // Function to validate login using Firebase Authentication
   Future<void> _login() async {
     String email = _emailController.text.trim();
     String password = _passwordController.text.trim();
 
+    try {
+      // Authenticate using Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
 
-      // Fetch admin data from Firestore based on email
+      // Authentication was successful, now fetch admin details from Firestore
       final QuerySnapshot result = await FirebaseFirestore.instance
           .collection('admin')
           .where('email', isEqualTo: email)
-          .limit(1) // Limit to one result to ensure efficiency
+          .limit(1)
           .get();
 
-      // Check if the result is not empty (i.e., admin exists)
+      // Check if the admin exists in Firestore
       if (result.docs.isNotEmpty) {
-        // Admin exists, now validate password
         final adminData = result.docs[0].data() as Map<String, dynamic>;
+        String adminDepartment = adminData['dept_name']; // Get department
 
-        if (adminData['password'] == password) {
-          // Password is correct, ensure one admin per department
-          String adminDepartment = adminData['dept_name'];
-
-          // Navigate to AdminHomePage, passing email and department
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => AdminHomePage(
-                adminEmail: adminData['email'], // Pass admin email
-                adminDepartment: adminDepartment, // Pass department to the home page
-              ),
+        // Navigate to AdminHomePage, passing email and department
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AdminHomePage(
+              adminEmail: email, // Pass admin email
+              adminDepartment: adminDepartment, // Pass admin department
             ),
-          );
-        } else {
-          setState(() {
-            errorMessage = 'Invalid password. Please try again.';
-          });
-        }
+          ),
+        );
       } else {
-        // No matching admin found
+        // Admin data not found in Firestore
         setState(() {
-          errorMessage = 'Admin with this email does not exist.';
+          errorMessage = 'Admin details not found in Firestore.';
         });
       }
-
+    } on FirebaseAuthException catch (e) {
+      // Handle Firebase authentication errors
+      setState(() {
+        if (e.code == 'user-not-found') {
+          errorMessage = 'No user found for that email.';
+        } else if (e.code == 'wrong-password') {
+          errorMessage = 'Wrong password provided.';
+        } else {
+          errorMessage = 'Login failed. Please try again.';
+        }
+      });
+    } catch (e) {
+      // General error handling
+      setState(() {
+        errorMessage = 'Error occurred during login: $e';
+      });
+    }
   }
 
   @override

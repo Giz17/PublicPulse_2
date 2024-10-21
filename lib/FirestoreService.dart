@@ -58,6 +58,7 @@ class FirestoreService {
     required String pincode,
     required String email,
     required String status,
+    required String priority,
   }) {
     return complaints.doc(complaintId).set({
       'complaint_id': complaintId,
@@ -72,6 +73,7 @@ class FirestoreService {
       'email': email,
       'status': "pending",
       'submittedAt': FieldValue.serverTimestamp(),
+      'priority' : "low",
     });
   }
 
