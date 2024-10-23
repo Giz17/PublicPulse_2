@@ -60,8 +60,6 @@ class _AdminLoginPageState extends State<AdminLoginPage> {
           errorMessage = 'No user found for that email.';
         } else if (e.code == 'wrong-password') {
           errorMessage = 'Wrong password provided.';
-        } else {
-          errorMessage = 'Login failed. Please try again.';
         }
       });
     } catch (e) {

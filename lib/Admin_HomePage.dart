@@ -1,10 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import './AdminCommunityChat_GOAT.dart';
 import './Admin_Feedback.dart';
 import './Admin_Dashboard.dart';
-import './Admin_Progress.dart';
 import './Admin_AccountSettings.dart';
 
 class AdminHomePage extends StatefulWidget {
@@ -20,7 +18,7 @@ class AdminHomePage extends StatefulWidget {
 class _AdminHomePageState extends State<AdminHomePage> {
   int totalComplaints = 0;
   int resolvedComplaints = 0;
-  String adminID = '';   // Placeholder for admin ID
+  String adminID = ''; // Placeholder for admin ID
   String adminEmail = ''; // Placeholder for admin email
   String adminDepartment = '';
 
@@ -36,12 +34,15 @@ class _AdminHomePageState extends State<AdminHomePage> {
     // Fetch complaints only for the department specified
     final QuerySnapshot complaintsSnapshot = await FirebaseFirestore.instance
         .collection('complaints')
-        .where('dept_name', isEqualTo: widget.adminDepartment) // Filter by department
+        .where(
+        'dept_name', isEqualTo: widget.adminDepartment) // Filter by department
         .get();
 
     // Calculate total and resolved complaints
     int totalCount = complaintsSnapshot.docs.length;
-    int resolvedCount = complaintsSnapshot.docs.where((doc) => doc['status'] == 'Resolved').length;
+    int resolvedCount = complaintsSnapshot.docs
+        .where((doc) => doc['status'] == 'Resolved')
+        .length;
 
     // Update the UI with the fetched data
     setState(() {
@@ -52,7 +53,6 @@ class _AdminHomePageState extends State<AdminHomePage> {
 
   // Fetch admin details from Firestore (admin_id, email, and department)
   Future<void> fetchAdminDetails() async {
-
     QuerySnapshot adminSnapshot = await FirebaseFirestore.instance
         .collection('admin')
         .where('email', isEqualTo: widget.adminEmail) // Use the passed email
@@ -63,18 +63,20 @@ class _AdminHomePageState extends State<AdminHomePage> {
       var adminData = adminSnapshot.docs.first.data() as Map<String, dynamic>;
 
       setState(() {
-          adminID = adminData['admin_id'] ?? 'Unknown Admin ID'; // Added fallback value
-          adminEmail = adminData['email'] ?? 'Unknown Email';
-          adminDepartment = adminData['dept_name'] ?? 'Unknown Department';  // Fetch the department
-        });
+        adminID =
+            adminData['admin_id'] ?? 'Unknown Admin ID'; // Added fallback value
+        adminEmail = adminData['email'] ?? 'Unknown Email';
+        adminDepartment = adminData['dept_name'] ??
+            'Unknown Department'; // Fetch the department
+      });
 
-        print('Admin ID: $adminID, Admin Department: $adminDepartment');  // Debugging print
+      print(
+          'Admin ID: $adminID, Admin Department: $adminDepartment'); // Debugging print
 
-      } else {
-        print('Admin not found in Firestore.');
-      }
+    } else {
+      print('Admin not found in Firestore.');
     }
-
+  }
 
 
   @override
@@ -85,10 +87,12 @@ class _AdminHomePageState extends State<AdminHomePage> {
           // Background Image with Opacity
           Positioned.fill(
             child: Opacity(
-              opacity: 0.1, // Adjust this value to make the image lighter or darker
+              opacity: 0.1,
+              // Adjust this value to make the image lighter or darker
               child: Image.asset(
                 'assets/logo.jpg', // Path to your image
-                fit: BoxFit.scaleDown, // Ensure the image covers the whole screen
+                fit: BoxFit
+                    .scaleDown, // Ensure the image covers the whole screen
               ),
             ),
           ),
@@ -102,7 +106,9 @@ class _AdminHomePageState extends State<AdminHomePage> {
                 padding: const EdgeInsets.all(16.0),
                 child: const Text(
                   'PublicPulse',
-                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -138,7 +144,8 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   children: [
                     Text(
                       'Overall Complaints Status',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold),
                     ),
 
                   ],
@@ -163,42 +170,44 @@ class _AdminHomePageState extends State<AdminHomePage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 16.0),
+              const SizedBox(height: 32.0),
+              const Spacer(), // Spacer to push the buttons to the bottom
               // Bottom Buttons
               Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.only(bottom: 16.0),
+
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildBottomButton('Feedback', () {
+                    _buildIconButton(
+                        Icons.feedback, 'Feedback', () {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => AdminFeedbackPage(adminDepartment: adminDepartment),
+                          builder: (context) =>
+                              AdminFeedbackPage(
+                                  adminDepartment: adminDepartment),
                         ),
                       );
-
                     }),
-                    _buildBottomButton('Dashboard', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminDashboard()));
+                    _buildIconButton(
+                        Icons.dashboard, 'Dashboard', () {
+                      Navigator.push(context, MaterialPageRoute(
+                          builder: (context) => AdminDashboard(adminDepartment: adminDepartment)));
                     }),
-                    _buildBottomButton(
+                    _buildIconButton(
+                      Icons.group,
                       'Community',
                           () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatApp()));
+                        Navigator.push(context, MaterialPageRoute(
+                            builder: (context) =>  AdminCommunityChatPage(adminName: adminID, adminDepartment: adminDepartment)));
                       },
                     ),
-                    _buildBottomButton('Progress', () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AdminProgressPage(adminDepartment: adminDepartment),
-                        ),
-                      );
 
-                    }),
-                    _buildBottomButton('Account', () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AdminSettingsPage()));
+                    _buildIconButton(
+                        Icons.person, 'Account', () {
+                      Navigator.push(context, MaterialPageRoute(
+                          builder: (context) =>  AdminSettingsPage(adminEmail: adminEmail)));
                     }),
                   ],
                 ),
@@ -210,15 +219,28 @@ class _AdminHomePageState extends State<AdminHomePage> {
     );
   }
 
-  // Helper method to build bottom buttons
-  Widget _buildBottomButton(String label, VoidCallback onPressed) {
+
+// Helper method to build icon buttons
+  Widget _buildIconButton(IconData icon, String label, VoidCallback onPressed) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.blue,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        shape: const CircleBorder(),
+        padding: const EdgeInsets.all(16.0),
       ),
-      child: Text(label, style: const TextStyle(color: Colors.white)),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.white),
+          const SizedBox(height: 8.0),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }

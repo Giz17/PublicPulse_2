@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import './EmailSupport.dart';
+import './CallSupport.dart';
+import './Admin_LoginPage.dart'; // Import the Admin Login Page
 
 class AccountSettingsPage extends StatefulWidget {
   const AccountSettingsPage({super.key});
@@ -38,12 +41,28 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
     }
   }
 
+  // Logout method
+  Future<void> _logout() async {
+    await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const AdminLoginPage()), // Navigate to Admin Login Page
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
         backgroundColor: Colors.blue,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout, // Call logout method on button press
+            tooltip: 'Logout',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -157,10 +176,14 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     Expanded(
                       child: TextButton.icon(
                         onPressed: () {
-                          // Add email support action
+                          // Navigate to Email Support Page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => EmailSupport()),
+                          );
                         },
                         icon: const Icon(Icons.email, color: Colors.white),
-                        label: const Text('Email support'),
+                        label: const Text('Email Support'),
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white, backgroundColor: Colors.blue,
                         ),
@@ -170,7 +193,11 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                     Expanded(
                       child: TextButton.icon(
                         onPressed: () {
-                          // Add call support action
+                          // Navigate to Call Support Page
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => CallSupport()),
+                          );
                         },
                         icon: const Icon(Icons.phone, color: Colors.white),
                         label: const Text('Call Support'),
@@ -183,43 +210,6 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
                 ),
 
                 const SizedBox(height: 32.0),
-
-                // General Settings Section
-                const Text(
-                  'General Settings',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                const SizedBox(height: 16.0),
-
-                // General settings list tiles
-                ListTile(
-                  leading: const Icon(Icons.notifications),
-                  title: const Text('Notification Preferences'),
-                  onTap: () {
-                    // Navigate to notification preferences
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.lock),
-                  title: const Text('Privacy Settings'),
-                  onTap: () {
-                    // Navigate to privacy settings
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.language),
-                  title: const Text('Language Selection'),
-                  onTap: () {
-                    // Navigate to language selection
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.security),
-                  title: const Text('Account Security'),
-                  onTap: () {
-                    // Navigate to account security settings
-                  },
-                ),
               ],
             );
           },

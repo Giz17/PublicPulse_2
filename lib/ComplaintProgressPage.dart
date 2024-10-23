@@ -9,6 +9,7 @@ class ComplaintProgressPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Complaint Progress'),
+        backgroundColor: Colors.blue,
       ),
       body: const ComplaintList(), // Calls the widget displaying complaints
     );

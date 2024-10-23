@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AdminDashboard extends StatefulWidget {
-  const AdminDashboard({super.key});
+  final String adminDepartment; // Admin's department
+
+  const AdminDashboard({super.key, required this.adminDepartment});
 
   @override
   _AdminDashboardState createState() => _AdminDashboardState();
@@ -17,6 +19,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Dashboard'),
+        backgroundColor: Colors.blue,
       ),
       body: Column(
         children: [
@@ -44,8 +47,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               children: [
                 DropdownButton<String>(
                   value: sortBy,
-                  items: <String>['Date', 'Priority']
-                      .map((String value) {
+                  items: <String>['Date', 'Priority'].map((String value) {
                     return DropdownMenuItem<String>(
                       value: value,
                       child: Text('Sort by $value'),
@@ -63,7 +65,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
           // Complaint Listing
           Expanded(
             child: StreamBuilder(
-              stream: FirebaseFirestore.instance.collection('complaints').snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('complaints')
+                  .where('dept_name', isEqualTo: widget.adminDepartment) // Filter by admin's department
+                  .snapshots(),
               builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -75,10 +80,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 // Apply Search Filter (Search by complaint title)
                 if (searchQuery.isNotEmpty) {
                   complaints = complaints
-                      .where((doc) =>
-                      doc['complaint_title']
-                          .toLowerCase()
-                          .contains(searchQuery))
+                      .where((doc) => doc['complaint_title']
+                      .toLowerCase()
+                      .contains(searchQuery))
                       .toList();
                 }
 
@@ -96,30 +100,55 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   itemCount: complaints.length,
                   itemBuilder: (context, index) {
                     var complaint = complaints[index];
-                    return ListTile(
-                      title: Text('Complaint Title: ${complaint['complaint_title']}'),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Date: ${complaint['date']}'),
-                          Text('User: ${complaint['email']}'),
-                          Text('Comments: ${complaint['details']}'),
-                          Text('Status: ${complaint['status']}'),
-                          Text('Priority: ${complaint['priority'] ?? "None"}'),
-                        ],
-                      ),
-                      trailing: PopupMenuButton<String>(
-                        onSelected: (newPriority) {
-                          updateComplaintPriority(complaint.id, newPriority);
-                        },
-                        itemBuilder: (BuildContext context) {
-                          return ['High', 'Medium', 'Low'].map((String choice) {
-                            return PopupMenuItem<String>(
-                              value: choice,
-                              child: Text('Set Priority: $choice'),
-                            );
-                          }).toList();
-                        },
+                    return Card(
+                      margin: const EdgeInsets.all(8),
+                      child: ListTile(
+                        title: Text('Complaint Title: ${complaint['complaint_title']}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Date: ${complaint['date']}'),
+                            Text('User: ${complaint['email']}'),
+                            Text('Comments: ${complaint['details']}'),
+                            Text('Status: ${complaint['status'] ?? "Pending"}'),
+                            Text('Priority: ${complaint['priority'] ?? "None"}'),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Status Popup Menu
+                            PopupMenuButton<String>(
+                              onSelected: (newStatus) {
+                                updateComplaintStatus(complaint.id, newStatus);
+                              },
+                              itemBuilder: (BuildContext context) {
+                                return ['Pending', 'In Progress', 'Resolved'].map((String choice) {
+                                  return PopupMenuItem<String>(
+                                    value: choice,
+                                    child: Text('Set Status: $choice'),
+                                  );
+                                }).toList();
+                              },
+                              child: const Icon(Icons.more_vert), // Icon for status update
+                            ),
+                            // Priority Popup Menu
+                            PopupMenuButton<String>(
+                              onSelected: (newPriority) {
+                                updateComplaintPriority(complaint.id, newPriority);
+                              },
+                              itemBuilder: (BuildContext context) {
+                                return ['High', 'Medium', 'Low'].map((String choice) {
+                                  return PopupMenuItem<String>(
+                                    value: choice,
+                                    child: Text('Set Priority: $choice'),
+                                  );
+                                }).toList();
+                              },
+                              child: const Icon(Icons.flag), // Icon for priority update
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -148,35 +177,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
     });
   }
 
-  void deleteComplaint(String complaintId) {
-    FirebaseFirestore.instance.collection('complaints').doc(complaintId).delete();
-  }
-
-  void respondToComplaint(BuildContext context, String complaintId) {
-    // Navigate to response page
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => RespondPage(complaintId: complaintId),
-      ),
-    );
-  }
-}
-
-class RespondPage extends StatelessWidget {
-  final String complaintId;
-
-  const RespondPage({super.key, required this.complaintId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Respond to Complaint $complaintId'),
-      ),
-      body: const Center(
-        child: Text('Response form goes here.'),
-      ),
-    );
+  // Update the status of the complaint in Firestore
+  void updateComplaintStatus(String complaintId, String newStatus) {
+    FirebaseFirestore.instance
+        .collection('complaints')
+        .doc(complaintId)
+        .update({'status': newStatus}).then((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Complaint status updated to $newStatus')),
+      );
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update status: $error')),
+      );
+    });
   }
 }

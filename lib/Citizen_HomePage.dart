@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import './FeedbackPage.dart';
 import './AccountSettings.dart';
 import './CommunityChat_GOAT.dart';
 import './ComplaintPage.dart';
 import './ComplaintProgressPage.dart';
+import './FeedbackPage.dart';
 
 class CitizenHomePage extends StatefulWidget {
   const CitizenHomePage({super.key});
@@ -17,7 +17,9 @@ class CitizenHomePage extends StatefulWidget {
 class _CitizenHomePageState extends State<CitizenHomePage> {
   String _searchQuery = '';
   String _filterBy = '';
-  final List<String> _filters = ['Date', 'Dept', 'Status'];
+  final List<String> _filters = ['Date', 'Dept'];
+  final String _selectedDept = 'All'; // Default selected department
+
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +30,9 @@ class _CitizenHomePageState extends State<CitizenHomePage> {
           Positioned.fill(
             child: Opacity(
               opacity: 0.1,
-              // Adjust this value to make the image lighter or darker
               child: Image.asset(
                 'assets/logo.jpg', // Path to your image
-                fit: BoxFit.scaleDown, // Ensure the image covers the whole screen
+                fit: BoxFit.scaleDown,
               ),
             ),
           ),
@@ -77,25 +78,32 @@ class _CitizenHomePageState extends State<CitizenHomePage> {
                 ),
               ),
               const SizedBox(height: 16.0),
-              // Filter Options
+              // Filter Options and Department Dropdown
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _filters.map((filter) {
-                    return ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          _filterBy = filter;
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      ),
-                      child: Text('Filter by $filter'),
-                    );
-                  }).toList(),
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Filter buttons
+                    Row(
+                      children: _filters.map((filter) {
+                        return ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _filterBy = filter;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _filterBy == filter ? Colors.blueAccent : Colors.blue,
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          ),
+                          child: Text('Filter by $filter', style: TextStyle(color: Colors.white)),
+                        );
+                      }).toList(),
+                    ),
+                    // Department dropdown
+                   
+                  ],
                 ),
               ),
               const SizedBox(height: 16.0),
@@ -115,10 +123,10 @@ class _CitizenHomePageState extends State<CitizenHomePage> {
                       return const Center(child: Text('No complaints found.'));
                     }
 
-                    // Filter and search complaints
+                    // Fetch complaints from Firestore
                     List<DocumentSnapshot> complaints = snapshot.data!.docs;
 
-                    // Apply search filter
+                    // Apply search query filter (if any)
                     if (_searchQuery.isNotEmpty) {
                       complaints = complaints.where((complaint) {
                         String title = complaint['complaint_title'].toLowerCase();
@@ -126,36 +134,44 @@ class _CitizenHomePageState extends State<CitizenHomePage> {
                       }).toList();
                     }
 
-                    // Apply additional filters
-                    if (_filterBy.isNotEmpty) {
+                    // Apply filter by Date
+                    if (_filterBy == 'Date') {
+                      // Sort complaints by Date (assumes 'date' is a timestamp field in Firestore)
+                      complaints.sort((a, b) {
+                        String dateA = a['date'];
+                        String dateB = b['date'];
+                        return dateA.compareTo(dateB);
+                      });
+                    }
+
+                    // Apply department filter
+                    if (_selectedDept != 'All') {
                       complaints = complaints.where((complaint) {
-                        if (_filterBy == 'Date') {
-                          // Example of date filter logic
-                          return true; // Replace with actual logic
-                        } else if (_filterBy == 'Dept') {
-                          // Example of dept filter logic
-                          return complaint['dept_name'] == 'TargetDepartment'; // Replace with actual logic
-                        } else if (_filterBy == 'Status') {
-                          // Example of status filter logic
-                          return complaint['status'] == 'Open'; // Replace with actual logic
-                        }
-                        return true;
+                        return complaint['dept_name'] == _selectedDept;
                       }).toList();
                     }
 
+                    // Sort complaints by Department name if the Dept filter is selected
+                    if (_filterBy == 'Dept') {
+                      complaints.sort((a, b) {
+                        String deptA = a['dept_name'];
+                        String deptB = b['dept_name'];
+                        return deptA.compareTo(deptB);
+                      });
+                    }
+
+                    // Display the filtered and sorted list of complaints
                     return ListView.builder(
                       itemCount: complaints.length,
                       itemBuilder: (context, index) {
                         var complaint = complaints[index];
                         String title = complaint['complaint_title'];
-                        String description = complaint['details'];
                         String date = complaint['date'];
-                        String status = complaint['status'];
                         String dept = complaint['dept_name'];
 
                         return ListTile(
                           title: Text(title),
-                          subtitle: Text('Dept: $dept | Status: $status\nDate: $date'),
+                          subtitle: Text('Dept: $dept | Date: $date'),
                           onTap: () {
                             // Handle complaint tap action here
                           },
@@ -165,26 +181,25 @@ class _CitizenHomePageState extends State<CitizenHomePage> {
                   },
                 ),
               ),
+
               // Add Complaint Button
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: ElevatedButton(
                   onPressed: () {
-                    // Navigate to ComplaintPage when the button is pressed
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) =>  const AddComplaintPage ()),
+                      MaterialPageRoute(builder: (context) => const AddComplaintPage()),
                     );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32.0, vertical: 12.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
                   ),
-                  child: const Text(
-                      'Add Complaint', style: TextStyle(color: Colors.white)),
+                  child: const Text('Add Complaint', style: TextStyle(color: Colors.white)),
                 ),
               ),
+
               // Icon Buttons
               Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -195,13 +210,13 @@ class _CitizenHomePageState extends State<CitizenHomePage> {
                       Icons.feedback,
                       'Feedback',
                           () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const SelectComplaintPage(), // Navigate to complaint selection
-                              ),
-                            );
-                            // Example complaint ID
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SelectComplaintPage(), // Navigate to complaint selection
+                          ),
+                        );
+                        // Example complaint ID
                       },
                     ),
                     _buildIconButton(
@@ -343,6 +358,7 @@ class SelectComplaintPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Select a Complaint'),
+        backgroundColor: Colors.blue,
       ),
       body: ComplaintList(),
     );
@@ -353,7 +369,7 @@ class ComplaintList extends StatelessWidget {
   // Get the current user's email
   final String userEmail = FirebaseAuth.instance.currentUser?.email ?? '';
 
-   ComplaintList({super.key});
+  ComplaintList({super.key});
 
   @override
   Widget build(BuildContext context) {

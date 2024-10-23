@@ -55,6 +55,7 @@ class _AddFeedbackPageState extends State<AddFeedbackPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Submit Feedback'),
+        backgroundColor: Colors.blue,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

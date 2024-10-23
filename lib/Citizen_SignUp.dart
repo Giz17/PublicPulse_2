@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart'; // For Google sign-in
 import 'package:flutter/material.dart';
 import './Citizen_HomePage.dart';
+import './Citizen_LogIn.dart';
 // Citizen Signup Page with Firebase Auth and Google Sign-In
 class CitizenSignupPage extends StatefulWidget {
   const CitizenSignupPage({super.key});
@@ -50,7 +51,10 @@ class _CitizenSignupPageState extends State<CitizenSignupPage> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Signup successful. Please verify your email.'),
       ));
-    } catch (e) {
+
+
+    }
+    catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
@@ -74,7 +78,7 @@ class _CitizenSignupPageState extends State<CitizenSignupPage> {
         'role': 'citizen',
       });
 
-      Navigator.push(context, MaterialPageRoute(builder: (context)=> const CitizenHomePage()));
+      Navigator.push(context, MaterialPageRoute(builder: (context)=> const CitizenLoginPage()));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }

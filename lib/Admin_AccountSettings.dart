@@ -1,24 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import './Admin_LoginPage.dart';
 
 class AdminSettingsPage extends StatefulWidget {
-  const AdminSettingsPage({super.key});
+  final String adminEmail;
+
+  const AdminSettingsPage({super.key, required this.adminEmail});
 
   @override
   _AdminSettingsPageState createState() => _AdminSettingsPageState();
 }
 
 class _AdminSettingsPageState extends State<AdminSettingsPage> {
-  bool _darkMode = false;
   bool _notificationsEnabled = true;
-  String _username = "AdminUser";
-  String _email = "admin@example.com";
-  String _securityQuestion = "What was your first pet's name?";
-  final String _adminId = ""; // Admin's Firestore document ID
+  String _email = "Loading...";
+  String _contact = "Loading...";
+  String _deptName = "Loading...";
+  String _adminId = "Loading..."; // Admin's ID
 
-  // Reference to Firestore
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  // Firebase Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   @override
@@ -27,38 +27,36 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
     _fetchAdminData();
   }
 
-  // Fetch the admin data from Firestore
+  // Fetch admin details from Firestore (admin_id, email, and department)
   Future<void> _fetchAdminData() async {
-    try {
-      User? currentUser = _auth.currentUser;
-      if (currentUser != null) {
-        String email = currentUser.email!;
-        DocumentSnapshot adminDoc = await _firestore
-            .collection('admins') // Assuming 'admins' collection exists
-            .doc(email) // Admin's document is stored with their email as ID
-            .get();
+    QuerySnapshot adminSnapshot = await FirebaseFirestore.instance
+        .collection('admin')
+        .where('email', isEqualTo: widget.adminEmail)
+        .limit(1)
+        .get();
 
-        if (adminDoc.exists) {
-          setState(() {
-            _username = adminDoc['username'];
-            _email = adminDoc['email'];
-            _darkMode = adminDoc['darkMode'];
-            _notificationsEnabled = adminDoc['notificationsEnabled'];
-            _securityQuestion = adminDoc['securityQuestion'];
-          });
-        }
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error fetching admin data: $e'),
-      ));
+    if (adminSnapshot.docs.isNotEmpty) {
+      var adminData = adminSnapshot.docs.first.data() as Map<String, dynamic>;
+
+      setState(() {
+        _adminId = adminData['admin_id'] ?? 'Unknown Admin ID'; // Fetch admin ID
+        _email = adminData['email'] ?? widget.adminEmail;
+        _contact = adminData['contact'] ?? 'Not Set';
+        _deptName = adminData['dept_name'] ?? 'Not Set';
+        _notificationsEnabled = adminData['notificationsEnabled'] ?? false;
+
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Admin data does not exist in Firestore.')),
+      );
     }
   }
 
-  // Update data in Firestore when changes are made
+  // Update admin data in Firestore
   Future<void> _updateAdminData(Map<String, dynamic> data) async {
     try {
-      await _firestore.collection('admins').doc(_email).update(data);
+      await _firestore.collection('admin').doc(widget.adminEmail).update(data);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Settings updated successfully')),
       );
@@ -82,8 +80,8 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
             // Username Field
             ListTile(
               leading: const Icon(Icons.person),
-              title: const Text("Username"),
-              subtitle: Text(_username),
+              title: const Text("Admin ID"),
+              subtitle: Text(_adminId),
               trailing: IconButton(
                 icon: const Icon(Icons.edit),
                 onPressed: () {
@@ -107,17 +105,19 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
             ),
             const Divider(),
 
-            // Dark Mode Switch
-            SwitchListTile(
-              title: const Text("Dark Mode"),
-              value: _darkMode,
-              onChanged: (bool value) {
-                setState(() {
-                  _darkMode = value;
-                });
-                _updateAdminData({'darkMode': value});
-              },
-              secondary: const Icon(Icons.brightness_6),
+            // Department Name Field
+            ListTile(
+              leading: const Icon(Icons.account_balance),
+              title: const Text("Department"),
+              subtitle: Text(_deptName),
+            ),
+            const Divider(),
+
+            // Contact Field
+            ListTile(
+              leading: const Icon(Icons.phone),
+              title: const Text("Contact"),
+              subtitle: Text(_contact),
             ),
             const Divider(),
 
@@ -135,19 +135,6 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
             ),
             const Divider(),
 
-            // Security Question
-            ListTile(
-              leading: const Icon(Icons.security),
-              title: const Text("Security Question"),
-              subtitle: Text(_securityQuestion),
-              trailing: IconButton(
-                icon: const Icon(Icons.edit),
-                onPressed: () {
-                  _changeSecurityQuestion();
-                },
-              ),
-            ),
-            const Divider(),
 
             // Save Button (Optional, since we're auto-saving on changes)
             Padding(
@@ -177,7 +164,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
     showDialog(
       context: context,
       builder: (context) {
-        String newUsername = _username;
+        String newUsername = _adminId;
         return AlertDialog(
           title: const Text('Change Username'),
           content: TextField(
@@ -192,9 +179,9 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  _username = newUsername;
+                  _adminId = newUsername;
                 });
-                _updateAdminData({'username': newUsername});
+                _updateAdminData({'admin_id': newUsername});
                 Navigator.of(context).pop();
               },
               child: const Text('Save'),
@@ -238,42 +225,14 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
     );
   }
 
-  // Function to change the security question
-  void _changeSecurityQuestion() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        String newQuestion = _securityQuestion;
-        return AlertDialog(
-          title: const Text('Change Security Question'),
-          content: TextField(
-            onChanged: (value) {
-              newQuestion = value;
-            },
-            decoration: const InputDecoration(
-              hintText: 'Enter new security question',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _securityQuestion = newQuestion;
-                });
-                _updateAdminData({'securityQuestion': newQuestion});
-                Navigator.of(context).pop();
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   // Logout function
   void _logout() {
-    _auth.signOut();
-    Navigator.pop(context); // Go back to login or previous page
+    // Navigate to the AdminLoginPage and replace the current page.
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const AdminLoginPage()),
+    );
   }
+
 }

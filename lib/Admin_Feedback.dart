@@ -11,6 +11,7 @@ class AdminFeedbackPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Feedback Page'),
+        backgroundColor: Colors.blue,
       ),
       body: StreamBuilder(
         // Filter complaints by the admin's department

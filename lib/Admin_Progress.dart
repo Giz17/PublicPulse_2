@@ -16,6 +16,7 @@ class _AdminProgressPageState extends State<AdminProgressPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Progress Page'),
+        backgroundColor: Colors.blue,
       ),
       body: StreamBuilder(
         // Filter complaints by the admin's department
